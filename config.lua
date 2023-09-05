@@ -6,7 +6,7 @@
 local is_windows = vim.fn.has('win32') == 1
 
 local output_file = 'build/$(FNOEXT)'
-local ld_flags = ''
+local ld_flags = '-Wl,--stack,268435456'
 
 
 if is_windows then
@@ -32,7 +32,6 @@ if is_windows then
   }
   -- this is mainly for powershell :/
   output_file = output_file .. '.exe'
-  ld_flags = '-Wl,--stack,268435456'
 end
 
 lvim.plugins = {
@@ -50,7 +49,7 @@ lvim.plugins = {
         },
         testcases_use_single_file = true,
         compile_command = {
-          cpp = { exec = 'g++', args = { '-std=c++17', '$(FNAME)', '-o', output_file, ld_flags } },
+          cpp = { exec = 'g++', args = { '-std=c++17', '$(FNAME)', '-o', output_file, (is_windows and ld_flags or nil) } },
         },
         compile_directory = "./",
         running_directory = "./build",
@@ -100,10 +99,7 @@ local function RunCppCode()
   -- Add .exe extension for Windows and prefix with ".\" for PowerShell
   if is_windows then
     execute_cmd = "." .. execute_cmd
-  else
-    execute_cmd = "./" .. execute_cmd
   end
-
   -- Construct the full command to execute
   local full_cmd = compile_cmd
 
