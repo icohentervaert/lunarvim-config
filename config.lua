@@ -6,6 +6,9 @@
 local is_windows = vim.fn.has('win32') == 1
 
 local output_file = 'build/$(FNOEXT)'
+local ld_flags = ''
+
+
 if is_windows then
   -- Enable powershell as your default shell
   vim.opt.shell = "pwsh.exe -NoLogo"
@@ -29,6 +32,7 @@ if is_windows then
   }
   -- this is mainly for powershell :/
   output_file = output_file .. '.exe'
+  ld_flags = '-Wl,--stack,268435456'
 end
 
 lvim.plugins = {
@@ -46,10 +50,13 @@ lvim.plugins = {
         },
         testcases_use_single_file = true,
         compile_command = {
-          cpp = { exec = 'g++', args = { '-std=c++17', '$(FNAME)', '-o', output_file, '-Wl,--stack,278435456' } },
+          cpp = { exec = 'g++', args = { '-std=c++17', '$(FNAME)', '-o', output_file, ld_flags } },
         },
         compile_directory = "./",
-        running_directory = "./build"
+        running_directory = "./build",
+        run_command = {
+          cpp = { exec = (is_windows and '' or 'ulimit -s 262144 && ') .. "./$(FNOEXT)" },
+        }
       }
     end,
   }
@@ -77,16 +84,15 @@ local function RunCppCode()
   -- Construct the compile command
   local compile_cmd = string.format('g++ -std=c++17 "%s" -o %s ', vim.fn.expand('%:p'), executable)
 
-  -- Define linker flags
-  local ld_flags = '-Wl,--stack,278435456'
 
-  -- Quote ld_flags for Windows (PowerShell)
+  -- ld_flags for Windows (PowerShell)
   if is_windows then
+    -- double qoute due to powershell being weird
     ld_flags = '"' .. ld_flags .. '"'
+    -- Append ld_flags to the compile command
+    compile_cmd = compile_cmd .. ' ' .. ld_flags
   end
 
-  -- Append ld_flags to the compile command
-  compile_cmd = compile_cmd .. ' ' .. ld_flags
 
   -- Define the execute command
   local execute_cmd = executable
@@ -99,8 +105,13 @@ local function RunCppCode()
   end
 
   -- Construct the full command to execute
-  local full_cmd = compile_cmd .. ' && ' .. execute_cmd
+  local full_cmd = compile_cmd
 
+  if not is_windows then
+    full_cmd = full_cmd .. ' && ' .. 'ulimit -s 262144'
+  end
+  -- add execution to full command
+  full_cmd = full_cmd .. ' && ' .. execute_cmd
   vim.cmd('vsplit')
 
   vim.cmd('terminal echo "running: ' .. vim.fn.expand('%:t') .. '" && ' .. full_cmd)
