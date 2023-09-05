@@ -54,7 +54,10 @@ lvim.plugins = {
         compile_directory = "./",
         running_directory = "./build",
         run_command = {
-          cpp = { exec = (is_windows and '' or 'ulimit -s 262144 && ') .. "./$(FNOEXT)" },
+          cpp = not is_windows and {
+            exec = "sh",
+            args = { "-c", 'ulimit -s 262144 && ./"$(FN0EXT)"' }
+          } or nil
         }
       }
     end,
