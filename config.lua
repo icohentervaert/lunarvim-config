@@ -56,7 +56,7 @@ lvim.plugins = {
         run_command = {
           cpp = not is_windows and {
             exec = "sh",
-            args = { "-c", 'ulimit -s 262144 && ./"$(FN0EXT)"' }
+            args = { "-c", 'ulimit -s 262144 && ./"$(FNOEXT)"' }
           } or nil
         }
       }
